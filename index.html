@@ -273,6 +273,7 @@ function intro(){
     <p>${PRE?'แบบทดสอบก่อนเรียน 6 ภารกิจตามหัวข้อในหน่วยที่ 1 และเคสด่วนอีก 1 เคส ใช้เวลาประมาณ 10 นาที ตอบตามความเข้าใจของตนเอง ระบบจะไม่เฉลยและไม่แสดงคะแนนระหว่างทำ ไม่ต้องคำนวณ':'แบบทดสอบหลังเรียน 6 ภารกิจตามหัวข้อในหน่วยที่ 1 และเคสด่วนอีก 1 เคส ใช้เวลาประมาณ 10 นาที แต่ละด่านมีเฉลยและคำอธิบายหลังตอบ ไม่ต้องคำนวณ'}</p>
     <div style="display:grid;gap:6px"><label for="nm">ชื่อนักศึกษาหรือชื่อกลุ่ม</label><input type="text" id="nm" autocomplete="off" placeholder="เช่น กลุ่ม 5 หรือ ชื่อ-สกุล" value="${esc(S.name)}"></div>
     <div class="row"><button class="go" id="startBtn">เริ่มภารกิจ</button><span class="muted">มีทั้งหมด ${total} คำตอบย่อย</span></div>
+    <p class="muted" style="margin:.2rem 0 0">โหมดฝึกระหว่างเรียน: <a href="ex.html#1">แบบฝึกหัดชุดที่ 1</a> · <a href="ex.html#2">แบบฝึกหัดชุดที่ 2</a></p>
   </section>`;
   $('startBtn').onclick=()=>{ S.name=$('nm').value.trim()||'ไม่ระบุชื่อ'; S.phase='play'; S.start=Date.now(); S.m=0;S.i=0; render(); };
 }

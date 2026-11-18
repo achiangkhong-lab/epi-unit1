@@ -47,6 +47,20 @@ tr.new td{animation:flash 2.5s}
 @keyframes flash{0%{background:#FFE9A8}100%{background:transparent}}
 .rk{font-family:var(--display);font-weight:700;color:var(--amber);width:2.2rem}
 .empty{color:var(--muted);padding:24px 0;text-align:center}
+.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px}
+.tabs button{font:inherit;font-size:.9rem;border:0;background:transparent;color:var(--muted);padding:5px 12px;border-radius:8px;cursor:pointer}
+.tabs button.on{background:var(--teal);color:#fff}
+#exview{display:none;padding:12px 32px 28px}
+.exn{font-family:var(--display);font-size:1.1rem;color:var(--muted);margin:0 0 10px}
+.q{display:grid;grid-template-columns:minmax(220px,1.1fr) 2fr;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.q p{margin:0;font-size:1rem}
+.stack{display:flex;height:34px;border-radius:8px;overflow:hidden;background:var(--paper)}
+.stack span{display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#fff;background:#9AA9B0;white-space:nowrap;overflow:hidden;transition:flex-basis .6s}
+.stack span.ok{background:var(--good)}
+.legend{color:var(--muted);font-size:.9rem;margin:8px 0 0}
+.flag{color:var(--alert);font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.bar.use .b i{background:var(--good)} .bar.irr .b i{background:#9AA9B0}
 .setup{max-width:760px;margin:40px auto;padding:0 24px}
 @media (max-width:900px){main{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
 </style>
@@ -55,9 +69,10 @@ tr.new td{animation:flash 2.5s}
 <header>
   <div>
     <h1>ภารกิจหน่วย<span>สอบสวนโรค</span> · คะแนนสด</h1>
-    <p class="sub">วิชา 2005102 · หน่วยที่ 1 แนวคิดพื้นฐานทางวิทยาการระบาด · แบบทดสอบหลังเรียน</p>
+    <p class="sub">วิชา 2005102 · หน่วยที่ 1 แนวคิดพื้นฐานทางวิทยาการระบาด · แบบฝึกหัดในคาบและแบบทดสอบหลังเรียน</p>
   </div>
   <div class="ctl">
+    <div class="tabs" id="tabs"><button data-m="ex1">แบบฝึกหัด 1</button><button data-m="ex2">แบบฝึกหัด 2</button><button data-m="post" class="on">หลังเรียน</button></div>
     <label for="day">วันที่เรียน</label><input type="date" id="day">
     <span class="live" id="live"><i></i><span id="lt">กำลังเชื่อมต่อ</span></span>
   </div>
@@ -80,6 +95,7 @@ tr.new td{animation:flash 2.5s}
     <p class="note">นับเฉพาะการส่งครั้งแรกของแต่ละชื่อ เรียงตามคะแนน แล้วตามเวลาที่ใช้น้อยกว่า</p>
   </section>
 </main>
+<section id="exview"></section>
 <script>
 const API = 'https://script.google.com/macros/s/AKfycby3HDuEorq4XKsyCy6z9fTWFWPglijcsFwxoGPLIn4e-aZ-VfMD6CfF2ftqg_Fjz9vKRg/exec';
 const TOPICS = ['1. นิยาม','2. รูปแบบการระบาด','3. ปัจจัยสามทาง','4. การกระจาย','5. ธรรมชาติโรค','6. ป้องกันและควบคุม','!! เคสด่วน'];
@@ -87,13 +103,52 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today = () => new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Bangkok'});
 const mmss = s => Math.floor(s/60) + ':' + String(Math.round(s%60)).padStart(2,'0');
-let seen = new Set(), timer = null;
+let seen = new Set(), timer = null, MODE = 'post';
+const EX1Q = ['ไข้หวัดใหญ่สายพันธุ์ใหม่ 2009 แพร่เข้าประเทศไทย','เอชไอวีเพิ่มขึ้นจากพฤติกรรมเสี่ยงทางเพศ','ไข้เลือดออกสูงขึ้นในฤดูฝน','อุจจาระร่วงระบาดในฤดูร้อน','พยาธิตัวจี๊ดในคนที่กินอาหารดิบ','หัดเพิ่มขึ้นในชุมชนที่เด็กได้วัคซีนไม่ครบ'];
+const EX1A = [[3],[4],[2],[2],[4,1],[4]];
+const CLUEQ = ['เวลาที่ชน','สภาพอากาศ','ตำแหน่งที่ชน','ไฟและป้ายเตือน','ความคุ้นเคยเส้นทาง','แอลกอฮอล์/โรคประจำตัว','สีรถ','สถานีวิทยุ'];
+const CLUEU = [1,1,1,1,1,1,0,0];
+const FACTQ = ['ชนช่วง 05.40–06.10 น. → เวลา','ชนที่โค้งจุดเดียวกัน → สถานที่','ไฟและป้ายเตือนชำรุด → สถานที่','ผู้ขับไม่คุ้นทาง → บุคคล','ไม่มีแอลกอฮอล์/โรคประจำตัว → บุคคล'];
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
+  MODE = b.dataset.m; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $('main').style.display = MODE === 'post' ? '' : 'none'; $('exview').style.display = MODE === 'post' ? 'none' : 'block';
+  seen = new Set(); load();
+});
 $('day').value = today();
 $('day').onchange = () => { seen = new Set(); load(); };
 
+function firstPer(rows){
+  rows.sort((a,b) => a.t - b.t);
+  const first = new Map();
+  rows.forEach(r => { const k = String(r.name).trim().toLowerCase().replace(/\s+/g,' '); if(!first.has(k)) first.set(k, r); });
+  return [...first.values()];
+}
+const pctOf = (n,d) => d ? Math.round(n/d*100) : 0;
+function renderEx1(L){
+  const n = L.length;
+  $('exview').innerHTML = `<div class="card"><h2 style="font-family:var(--display);color:var(--teal);margin:0 0 4px">แบบฝึกหัดชุดที่ 1 · คำตอบของทั้งชั้น</h2><p class="exn">ส่งแล้ว ${n} คู่</p>` +
+    EX1Q.map((q,i) => {
+      const c = [1,2,3,4].map(k => L.filter(r => Number((r.topics||[])[i]) === k).length);
+      const okp = pctOf(c.reduce((s,v,k)=>s+(EX1A[i].includes(k+1)?v:0),0), n);
+      return `<div class="q"><p><b>${i+1}.</b> ${q}${n && okp < 60 ? ' <span class="flag">· ควรอภิปราย</span>' : ''}</p><div class="stack">${c.map((v,k) => `<span class="${EX1A[i].includes(k+1)?'ok':''}" style="flex-basis:${n?pctOf(v,n):25}%">${v?('กรณี '+(k+1)+' · '+pctOf(v,n)+'%'):''}</span>`).join('')}</div></div>`;
+    }).join('') + `<p class="legend">แถบสีเขียว = คำตอบที่เหมาะสม · <span class="flag">ควรอภิปราย</span> = ตอบถูกไม่ถึงร้อยละ 60</p></div>`;
+}
+function renderEx2(L){
+  const n = L.length;
+  const ask = CLUEQ.map((q,k) => pctOf(L.filter(r => (Number((r.topics||[])[0])>>k)&1).length, n));
+  const sortp = FACTQ.map((q,k) => pctOf(L.filter(r => Number((r.topics||[])[k+1]) === 1).length, n));
+  const hyp = pctOf(L.filter(r => Number((r.topics||[])[6]) === 1).length, n);
+  const bar = (t,p,cls) => `<div class="bar ${cls||''}"><span>${t}</span><div class="b"><i class="${!cls && p<80?'low':''}" style="width:${p}%"></i></div><span class="v">${p}%</span></div>`;
+  $('exview').innerHTML = `<div class="card" style="margin-bottom:18px"><h2 style="font-family:var(--display);color:var(--teal);margin:0 0 4px">แบบฝึกหัดชุดที่ 2 · รถชนราวสะพาน</h2><p class="exn">ส่งแล้ว ${n} คู่ · ข้อสันนิษฐานถูก (สิ่งแวดล้อม + ผู้ขับไม่คุ้นทาง) ${hyp}%</p></div>
+  <div class="grid2"><div class="card"><h2>ขั้นที่ 1 · ทีมเลือกถามข้อมูลใด</h2>${CLUEQ.map((q,k)=>bar(q,ask[k],CLUEU[k]?'use':'irr')).join('')}<p class="note">เขียว = ข้อมูลที่ช่วยหาสาเหตุร่วม · เทา = ไม่เกี่ยวข้อง</p></div>
+  <div class="card"><h2>ขั้นที่ 2 · จัดข้อมูลถูก</h2>${FACTQ.map((q,k)=>bar(q,sortp[k])).join('')}<p class="note">แถบสีแดง = ถูกต่ำกว่าร้อยละ 80</p></div></div>`;
+}
 function render(rows){
+  rows.forEach(r => { r.t = typeof r.t === 'number' ? r.t : (Date.parse(r.t) || 0); r.mode = r.mode || 'post'; });
+  rows = rows.filter(r => r.mode === MODE);
+  if(MODE === 'ex1') return renderEx1(firstPer(rows));
+  if(MODE === 'ex2') return renderEx2(firstPer(rows));
   // first submission per name (case/space-insensitive)
-  rows.forEach(r => { r.t = typeof r.t === 'number' ? r.t : (Date.parse(r.t) || 0); });
   rows.sort((a,b) => a.t - b.t);
   const first = new Map();
   rows.forEach(r => { const k = String(r.name).trim().toLowerCase().replace(/\s+/g,' '); if(!first.has(k)) first.set(k, r); });

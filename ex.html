@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แบบฝึกหัด · ภารกิจหน่วยสอบสวนโรค</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: an outbreak-investigation case file — a 6-stop mission track on top, one "case card" in the middle, a status ticker below. */
+:root{
+  --paper:#EAF0F1; --card:#FFFFFF; --ink:#132029; --muted:#5A6B74;
+  --alert:#D1452A; --teal:#0E6B70; --amber:#D99A12; --line:#C9D5D8;
+  --good:#1F8A4C; --bad:#C0392B;
+  --display:"Chakra Petch", "IBM Plex Sans Thai", system-ui, sans-serif;
+  --body:"IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1A20; --card:#16252D; --ink:#E6EEF0; --muted:#97A9B1;
+    --alert:#F06A4E; --teal:#3FB3B8; --amber:#F0B73A; --line:#2A3E48;
+    --good:#4CC27E; --bad:#F06A5E; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1A20; --card:#16252D; --ink:#E6EEF0; --muted:#97A9B1;
+  --alert:#F06A4E; --teal:#3FB3B8; --amber:#F0B73A; --line:#2A3E48;
+  --good:#4CC27E; --bad:#F06A5E; color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+body{min-height:100%;padding:16px}
+.wrap{max-width:760px;margin:0 auto;display:grid;gap:14px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:700;letter-spacing:.02em}
+.brand small{display:block;font-family:var(--body);font-weight:500;color:var(--muted);font-size:.8rem;letter-spacing:0}
+.brand b{font-size:1.45rem;line-height:1.15;text-wrap:balance}
+.brand b span{color:var(--alert)}
+.hud{display:flex;gap:8px;font-family:var(--display);font-variant-numeric:tabular-nums}
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:6px;padding:4px 10px;font-size:.9rem;white-space:nowrap}
+.chip strong{font-size:1.05rem}
+/* mission track */
+.track{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.stop{border-top:4px solid var(--line);padding-top:6px;font-size:.72rem;color:var(--muted);line-height:1.25}
+.stop .n{font-family:var(--display);font-weight:700;font-size:.95rem;color:var(--muted)}
+.stop.done{border-color:var(--teal)} .stop.done .n{color:var(--teal)}
+.stop.now{border-color:var(--alert)} .stop.now .n,.stop.now{color:var(--ink)}
+@media (max-width:520px){.stop span.t{display:none}}
+/* case card */
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:20px;display:grid;gap:14px;position:relative}
+.stamp{font-family:var(--display);font-weight:700;font-size:.78rem;letter-spacing:.08em;color:var(--alert);border:2px solid var(--alert);border-radius:4px;padding:2px 8px;justify-self:start;transform:rotate(-2deg)}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.2}
+h1{font-size:1.9rem} h2{font-size:1.3rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.opts{display:grid;gap:8px}
+button{font:inherit;color:inherit;cursor:pointer}
+.opt{background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:11px 14px;text-align:left;transition:border-color .15s, background .15s}
+.opt:hover{border-color:var(--teal)}
+.opt.sel{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 12%,var(--card))}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--card))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--card))}
+.opt:disabled{cursor:default}
+.bins{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.bin{border:2px dashed var(--line);border-radius:8px;padding:8px;min-height:92px;display:flex;flex-direction:column;gap:6px;background:transparent;text-align:left}
+.bin.armed{border-color:var(--teal);border-style:solid}
+.bin h3{margin:0;font-family:var(--display);font-size:.95rem}
+.pool{display:flex;flex-wrap:wrap;gap:8px}
+.tag{background:var(--paper);border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.92rem;text-align:left}
+.tag.sel{border-color:var(--alert);box-shadow:0 0 0 2px color-mix(in srgb,var(--alert) 30%,transparent)}
+.tag.right{border-color:var(--good)} .tag.wrong{border-color:var(--bad);text-decoration:line-through}
+.blank{display:inline-block;min-width:92px;border-bottom:2px solid var(--teal);text-align:center;font-weight:700;color:var(--teal);padding:0 4px}
+.blank.right{color:var(--good);border-color:var(--good)} .blank.wrong{color:var(--bad);border-color:var(--bad)}
+.seq{display:grid;gap:6px}
+.seq .slot{border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;min-height:42px;display:flex;gap:10px;align-items:center}
+.seq .slot b{font-family:var(--display);color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.go{background:var(--ink);color:var(--paper);border:0;border-radius:8px;padding:11px 20px;font-family:var(--display);font-weight:700;font-size:1rem;letter-spacing:.02em}
+.go:hover{background:var(--teal)}
+.go:disabled{opacity:.4;cursor:not-allowed}
+.ghost{background:transparent;border:1.5px solid var(--line);border-radius:8px;padding:10px 16px}
+.fb{border-left:4px solid var(--teal);background:var(--paper);padding:10px 14px;border-radius:0 8px 8px 0}
+.fb.ok{border-color:var(--good)} .fb.no{border-color:var(--bad)}
+.fb strong{font-family:var(--display)}
+input[type=text]{font:inherit;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+label{font-weight:500}
+.ticker{font-size:.82rem;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:150px 1fr 56px;gap:10px;align-items:center;font-size:.9rem}
+.bar .b{height:10px;background:var(--paper);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.bar .b i{display:block;height:100%;background:var(--teal)}
+.bar .b i.low{background:var(--alert)}
+.bar span:last-child{font-variant-numeric:tabular-nums;text-align:right}
+@media (max-width:520px){.bar{grid-template-columns:110px 1fr 48px}}
+.fig{margin:0 0 12px;display:grid;gap:6px}
+.fig img{max-width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px}
+.fig figcaption{font-size:.82rem;color:var(--muted)}
+.pre .opt.right,.pre .opt.wrong{border-color:var(--line);background:var(--paper)}
+.pre .opt.picked{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 12%,var(--card))}
+.pre .tag.right,.pre .tag.wrong{border-color:var(--line);text-decoration:none}
+.pre .blank.right,.pre .blank.wrong{color:var(--teal);border-color:var(--teal)}
+.pre .hud .chip:not(#clock){display:none}
+.modebar{font-family:var(--display);font-weight:700;font-size:.8rem;letter-spacing:.06em;color:var(--card);background:var(--teal);border-radius:4px;padding:3px 10px;justify-self:start}
+.big{font-family:var(--display);font-size:3rem;font-weight:700;line-height:1;color:var(--alert);font-variant-numeric:tabular-nums}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){
+  .card{animation:in .28s ease-out}
+  @keyframes in{from{transform:translateY(6px)}to{transform:none}}
+}
+.sendmsg{font-weight:600;margin:.4rem 0}.sendmsg.ok{color:var(--good)}.sendmsg.no{color:var(--bad)}
+</style>
+<style>
+.cases{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:6px 0 12px}
+.cases div{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.9rem;background:var(--paper)}
+.cases b{color:var(--teal)}
+.clues{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0}
+.clue{font:inherit;text-align:left;border:2px dashed var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:12px;cursor:pointer;min-height:64px}
+.clue.on{border-style:solid;border-color:var(--teal);background:color-mix(in srgb,var(--teal) 10%,var(--card))}
+.clue.open{border-style:solid;cursor:default}
+.clue.open.use{border-color:var(--good)} .clue.open.no{border-color:var(--line);opacity:.75}
+.clue small{display:block;color:var(--muted);margin-bottom:4px}
+.clue .ans{display:block;margin-top:6px;font-weight:600}
+.fact{display:grid;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:var(--card)}
+.fact .seg{display:flex;gap:6px;flex-wrap:wrap}
+.fact .seg button{font:inherit;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer}
+.fact .seg button.sel{border-color:var(--teal);background:var(--teal);color:#fff}
+.fact .seg button.right{border-color:var(--good);background:var(--good);color:#fff}
+.fact .seg button.wrong{border-color:var(--bad);background:var(--bad);color:#fff}
+.menu{display:grid;gap:10px;margin-top:6px}
+.menu a{display:block;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--paper)}
+.menu a b{display:block;font-family:var(--display);color:var(--teal)}
+@media (max-width:560px){.cases,.clues{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><small>วิชา 2005102 · หน่วยที่ 1 แนวคิดพื้นฐานทางวิทยาการระบาด</small><b>ภารกิจหน่วย<span>สอบสวนโรค</span></b><div class="modebar" id="modebar">โหมดฝึก</div></div>
+    <div class="hud"><div class="chip">ถูก <strong id="score">0</strong></div><div class="chip" id="clock">00:00</div></div>
+  </header>
+  <nav class="track" id="track" aria-label="ความคืบหน้า"></nav>
+  <main id="stage"></main>
+  <div class="ticker"><span id="tick">โหมดฝึก: ไม่นับเป็นคะแนนแบบทดสอบ</span><span><a href="./" style="color:inherit">กลับหน้าหลัก</a></span></div>
+</div>
+<script>
+const API = 'https://script.google.com/macros/s/AKfycby3HDuEorq4XKsyCy6z9fTWFWPglijcsFwxoGPLIn4e-aZ-VfMD6CfF2ftqg_Fjz9vKRg/exec';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today = () => new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Bangkok'});
+
+// ---------- แบบฝึกหัดชุดที่ 1: ความไม่สมดุลของปัจจัยสามทาง (กรณีที่ 1–4 ตามเอกสารประกอบการสอน)
+const CASES = {
+  1:'สิ่งแวดล้อมเปลี่ยน เอื้อให้ปัจจัยด้าน<b>ตัวมนุษย์</b>มีอิทธิพลมากขึ้น',
+  2:'สิ่งแวดล้อมเปลี่ยน เอื้อให้ปัจจัยด้าน<b>สิ่งก่อโรค</b>มีอิทธิพลมากขึ้น',
+  3:'ปัจจัยด้าน<b>สิ่งก่อโรค</b>มีอิทธิพล ทำให้เสียสมดุล',
+  4:'ปัจจัยด้าน<b>ตัวมนุษย์</b>มีอิทธิพล ทำให้เสียสมดุล'
+};
+const EX1 = [
+  { q:'ไข้หวัดใหญ่สายพันธุ์ใหม่ 2009 (H1N1) ที่ติดต่อได้ง่าย แพร่เข้าสู่ประเทศไทยซึ่งไม่เคยมีเชื้อชนิดนี้มาก่อน โดยผู้เดินทางจากต่างประเทศ', a:3,
+    why:'เชื้อสายพันธุ์ใหม่ที่ติดต่อง่ายและประชากรไม่เคยมีภูมิคุ้มกันต่อเชื้อนี้ ตัวขับเคลื่อนหลักคือคุณสมบัติของสิ่งก่อโรค (กรณีที่ 3)' },
+  { q:'อัตราป่วยด้วยการติดเชื้อเอชไอวีสูงขึ้น เนื่องจากประชาชนมีพฤติกรรมเสี่ยงทางเพศ', a:4,
+    why:'พฤติกรรมเสี่ยงเป็นลักษณะของตัวมนุษย์ (host) ที่เพิ่มโอกาสสัมผัสเชื้อ (กรณีที่ 4)' },
+  { q:'โรคไข้เลือดออกมีอัตราป่วยสูงขึ้นในฤดูฝน', a:2,
+    why:'ฤดูฝนทำให้มีแหล่งน้ำขังมาก ยุงลายซึ่งเป็นพาหะเพิ่มจำนวน สิ่งแวดล้อมจึงเอื้อให้เชื้อไวรัสเดงกีแพร่ได้มากขึ้น (กรณีที่ 2)' },
+  { q:'ในฤดูร้อนมักเกิดการระบาดของโรคอุจจาระร่วง', a:2,
+    why:'อากาศร้อนทำให้เชื้อแบคทีเรียในอาหารและน้ำเจริญเติบโตได้เร็ว สิ่งแวดล้อมเอื้อให้สิ่งก่อโรคมีอิทธิพลมากขึ้น (กรณีที่ 2)' },
+  { q:'ภาคตะวันออกเฉียงเหนือพบโรคพยาธิตัวจี๊ดในคนที่รับประทานอาหารดิบ', a:4, alt:[1],
+    why:'การกินอาหารดิบเป็นพฤติกรรมของตัวมนุษย์ (กรณีที่ 4) ถ้าตอบกรณีที่ 1 โดยให้เหตุผลว่าวัฒนธรรมการกินในพื้นที่ (สิ่งแวดล้อมทางสังคม) ทำให้คนมีพฤติกรรมนี้ ก็ยอมรับได้' },
+  { q:'ผู้ป่วยโรคหัดเพิ่มขึ้นในชุมชนที่เด็กจำนวนมากได้รับวัคซีนไม่ครบตามเกณฑ์', a:4,
+    why:'เด็กไม่มีภูมิคุ้มกันจากวัคซีน ความไวต่อการติดเชื้อเป็นลักษณะของตัวมนุษย์ (กรณีที่ 4)' }
+];
+
+// ---------- แบบฝึกหัดชุดที่ 2: รถชนราวสะพาน 4 คันใน 30 นาที (สถานการณ์สมมติสำหรับฝึก)
+const PICK = 5;
+const CLUES = [
+  { k:'เวลา', q:'ทั้ง 4 คันชนเวลาใดบ้าง', ans:'05.40–06.10 น. ของเช้าวันเดียวกัน', use:true },
+  { k:'สภาพอากาศ', q:'สภาพอากาศขณะเกิดเหตุเป็นอย่างไร', ans:'มีหมอกหนา มองเห็นได้ไม่เกิน 50 เมตร', use:true },
+  { k:'จุดเกิดเหตุ', q:'ชนที่ตำแหน่งใดของสะพาน', ans:'จุดเดียวกันทุกคัน คือทางโค้งลงเนินก่อนขึ้นสะพาน', use:true },
+  { k:'ถนน', q:'ไฟส่องทางและป้ายเตือนเป็นอย่างไร', ans:'ไฟส่องทางและป้ายเตือนทางโค้งที่จุดนี้ชำรุดมา 2 สัปดาห์', use:true },
+  { k:'ผู้ขับขี่', q:'ผู้ขับขี่คุ้นเคยกับเส้นทางหรือไม่', ans:'ทั้ง 4 คนเป็นคนต่างพื้นที่ ใช้เส้นทางนี้ครั้งแรก', use:true },
+  { k:'ผู้ขับขี่', q:'ผู้ขับขี่ดื่มแอลกอฮอล์หรือมีโรคประจำตัวหรือไม่', ans:'ตรวจไม่พบแอลกอฮอล์ และไม่มีโรคประจำตัวที่เกี่ยวข้อง', use:true },
+  { k:'รถ', q:'รถทั้ง 4 คันมีสีอะไร', ans:'ขาว ดำ แดง และเทา', use:false },
+  { k:'ในรถ', q:'ผู้ขับขี่เปิดสถานีวิทยุใด', ans:'เปิดคนละสถานี', use:false }
+];
+const FACTS = [
+  { t:'ทั้ง 4 คันชนในช่วง 05.40–06.10 น.', a:'เวลา' },
+  { t:'ชนที่ทางโค้งลงเนินจุดเดียวกันทุกคัน', a:'สถานที่' },
+  { t:'ไฟส่องทางและป้ายเตือนทางโค้งที่จุดเกิดเหตุชำรุด', a:'สถานที่' },
+  { t:'ผู้ขับขี่ทั้ง 4 คนไม่คุ้นเคยกับเส้นทาง', a:'บุคคล' },
+  { t:'ผู้ขับขี่ไม่มีแอลกอฮอล์และไม่มีโรคประจำตัว', a:'บุคคล' }
+];
+const HYP = {
+  q:'ข้อสันนิษฐานใดอธิบายการเกิดเหตุ 4 ครั้งในเวลาและสถานที่เดียวกันได้ดีที่สุด',
+  opts:['ผู้ขับขี่แต่ละคนประมาทเอง เป็นเหตุบังเอิญที่เกิดซ้ำ 4 ครั้ง',
+        'สิ่งแวดล้อม (หมอกช่วงเช้ามืด และทางโค้งที่ไฟกับป้ายเตือนชำรุด) ร่วมกับผู้ขับขี่ไม่คุ้นเส้นทาง',
+        'รถทั้ง 4 คันมีระบบเบรกบกพร่อง',
+        'ผู้ขับขี่เมาสุราขณะขับรถ'], a:1,
+  why:'เหตุการณ์ที่กระจุกตัวในเวลาและสถานที่เดียวกันชี้ว่ามีสาเหตุร่วม เช่นเดียวกับการระบาดของโรค ข้อมูลเวลา (เช้ามืด มีหมอก) และสถานที่ (โค้ง ไฟและป้ายชำรุด) อธิบายสาเหตุร่วม ส่วนข้อมูลบุคคลตัดสาเหตุเรื่องแอลกอฮอล์ออก และพบว่าไม่คุ้นทางเหมือนกันทุกคน ข้อ ค และ ง ไม่มีข้อมูลสนับสนุน'
+};
+
+const MODE = location.hash==='#2' ? 2 : (location.hash==='#1' ? 1 : 0);
+let S = { name:'', step:0, ans:[], picks:[], sorts:[], hyp:null, start:0, end:0, sent:false };
+
+function hud(){
+  $('modebar').textContent = MODE ? 'โหมดฝึก · แบบฝึกหัดชุดที่ '+MODE : 'โหมดฝึก';
+  const got = MODE===1 ? S.ans.filter((x,i)=>ok1(i,x)).length : (S.sorts.filter((x,i)=>x===FACTS[i].a).length + (S.hyp===HYP.a?1:0));
+  $('score').textContent = got;
+  const t = S.start ? Math.floor(((S.end||Date.now())-S.start)/1000) : 0;
+  $('clock').textContent = String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+  const steps = MODE===1 ? EX1.map((_,i)=>'ข้อ '+(i+1)) : MODE===2 ? ['ซักถาม','จัดข้อมูล','สันนิษฐาน'] : [];
+  $('track').innerHTML = steps.map((s,k)=>`<div class="stop ${k<S.step?'done':(k===S.step&&S.start&&!S.end?'now':'')}"><span class="n">${String(k+1).padStart(2,'0')}</span> <span class="t">${s}</span></div>`).join('');
+}
+setInterval(hud,1000);
+const ok1 = (i,x) => x===EX1[i].a || (EX1[i].alt||[]).includes(x);
+
+function render(){
+  hud();
+  if(!MODE) return menu();
+  if(!S.start) return intro();
+  if(S.end) return done();
+  return MODE===1 ? ex1() : ex2();
+}
+function menu(){
+  $('stage').innerHTML = `<section class="card"><div class="stamp">เลือกกิจกรรม</div><h1>ภารกิจหน่วยสอบสวนโรค</h1>
+  <div class="menu">
+    <a href="ex.html#1"><b>แบบฝึกหัดชุดที่ 1</b>ปัจจัยสามทาง: สถานการณ์นี้เสียสมดุลแบบใด (6 ข้อ)</a>
+    <a href="ex.html#2"><b>แบบฝึกหัดชุดที่ 2</b>การกระจาย: สอบสวนรถชนราวสะพาน 4 คันใน 30 นาที</a>
+    <a href="./"><b>แบบทดสอบหลังเรียน</b>6 ภารกิจและเคสด่วน (ทำท้ายคาบ)</a>
+  </div></section>`;
+}
+function intro(){
+  const d = MODE===1
+    ? 'อ่านสถานการณ์ แล้วเลือกว่าเป็นความไม่สมดุลของปัจจัยสามทางวิทยาการระบาดกรณีใด (กรณีที่ 1–4) ทำเป็นคู่กับเพื่อนข้างที่นั่ง ตกลงคำตอบร่วมกันก่อนกด'
+    : 'เกิดอุบัติเหตุรถชนราวสะพาน 4 คันภายใน 30 นาที คุณคือทีมสอบสวน เลือกถามข้อมูลได้ '+PICK+' ข้อจาก 8 ข้อ แล้วจัดข้อมูลตามบุคคล สถานที่ และเวลา เพื่อหาสาเหตุร่วม';
+  $('stage').innerHTML = `<section class="card"><div class="stamp">แบบฝึกหัดชุดที่ ${MODE}</div>
+    <h1>${MODE===1?'สถานการณ์นี้เสียสมดุลแบบใด':'สอบสวนรถชนราวสะพาน'}</h1><p>${d}</p>
+    <div style="display:grid;gap:6px"><label for="nm">ชื่อคู่ (ใช้ชื่อเดียวกับตอนทำแบบทดสอบหลังเรียน)</label><input type="text" id="nm" autocomplete="off" placeholder="เช่น กลุ่ม 5 นาย ก–นาย ข" value="${esc(S.name)}"></div>
+    <div class="row"><button class="go" id="startBtn">เริ่ม</button><span class="muted">โหมดฝึก ไม่นับคะแนน</span></div></section>`;
+  $('startBtn').onclick=()=>{ S.name=$('nm').value.trim()||'ไม่ระบุชื่อ'; S.start=Date.now(); render(); };
+}
+function fb(ok, title, why, nextLabel, onNext){
+  $('fb').innerHTML = `<div class="fb ${ok?'ok':'no'}"><strong>${esc(title)}</strong><p>${esc(why)}</p></div>`;
+  $('ctl').innerHTML = `<button class="go" id="next">${nextLabel}</button>`;
+  $('next').onclick = onNext; $('next').focus();
+}
+// ----- EX1
+function ex1(){
+  const i=S.step, it=EX1[i];
+  $('stage').innerHTML = `<section class="card" aria-live="polite"><div class="stamp">ข้อ ${i+1} / ${EX1.length}</div><h2>${esc(it.q)}</h2>
+    <div class="opts">${[1,2,3,4].map(c=>`<button class="opt" data-c="${c}"><b>กรณีที่ ${c}</b> · ${CASES[c]}</button>`).join('')}</div>
+    <div id="fb"></div><div class="row" id="ctl"></div></section>`;
+  $('stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const c=+b.dataset.c; S.ans[i]=c;
+    $('stage').querySelectorAll('.opt').forEach(x=>{ x.disabled=true; const k=+x.dataset.c; if(k===it.a||(it.alt||[]).includes(k)) x.classList.add('right'); else if(k===c) x.classList.add('wrong'); });
+    const ok=ok1(i,c); hud();
+    fb(ok, ok?'ถูกต้อง':'คำตอบที่เหมาะสมคือกรณีที่ '+it.a, it.why, i<EX1.length-1?'ข้อต่อไป':'ดูสรุป', ()=>{ if(i<EX1.length-1){S.step++;} else { S.step=EX1.length; S.end=Date.now(); } render(); });
+  });
+}
+// ----- EX2
+function ex2(){
+  if(S.step===0){
+    $('stage').innerHTML = `<section class="card" aria-live="polite"><div class="stamp">ขั้นที่ 1 · ซักถามข้อมูล</div>
+      <h2>เลือกคำถามที่ช่วยหาสาเหตุร่วมได้มากที่สุด ${PICK} ข้อ</h2><p class="muted">เลือกแล้ว <b id="cnt">0</b>/${PICK}</p>
+      <div class="clues">${CLUES.map((c,k)=>`<button class="clue" data-k="${k}"><small>${esc(c.k)}</small>${esc(c.q)}</button>`).join('')}</div>
+      <div id="fb"></div><div class="row" id="ctl"><button class="go" id="ask" disabled>ถามข้อมูล</button></div></section>`;
+    const sel=new Set();
+    $('stage').querySelectorAll('.clue').forEach(b=>b.onclick=()=>{
+      const k=+b.dataset.k; if(sel.has(k)) sel.delete(k); else if(sel.size<PICK) sel.add(k);
+      $('stage').querySelectorAll('.clue').forEach(x=>x.classList.toggle('on',sel.has(+x.dataset.k)));
+      $('cnt').textContent=sel.size; $('ask').disabled=sel.size!==PICK;
+    });
+    $('ask').onclick=()=>{
+      S.picks=[...sel].sort((a,b)=>a-b);
+      $('stage').querySelectorAll('.clue').forEach(x=>{ const k=+x.dataset.k, c=CLUES[k]; x.disabled=true; x.classList.remove('on');
+        x.classList.add('open', c.use?'use':'no'); x.innerHTML=`<small>${esc(c.k)}${sel.has(k)?' · ทีมถามข้อนี้':''}</small>${esc(c.q)}<span class="ans">${sel.has(k)?esc(c.ans):'(ไม่ได้ถาม)'}</span>`; });
+      const useful=S.picks.filter(k=>CLUES[k].use).length;
+      fb(useful===PICK, `ทีมถามข้อมูลที่ใช้ได้ ${useful}/${PICK} ข้อ`,
+        'ข้อมูลที่ช่วยหาสาเหตุร่วมคือ เวลา สภาพอากาศ ตำแหน่ง สภาพถนน และลักษณะของผู้ขับขี่ ส่วนสีรถและสถานีวิทยุไม่เกี่ยวกับการเกิดเหตุ ในการสอบสวนโรคก็เช่นกัน ควรถามเฉพาะข้อมูลที่ช่วยอธิบายว่าเกิดกับใคร ที่ไหน และเมื่อใด',
+        'ไปขั้นจัดข้อมูล', ()=>{ S.step=1; render(); });
+    };
+    return;
+  }
+  if(S.step===1){
+    $('stage').innerHTML = `<section class="card" aria-live="polite"><div class="stamp">ขั้นที่ 2 · จัดข้อมูลตามบุคคล สถานที่ และเวลา</div>
+      <h2>ข้อมูลแต่ละข้อเป็นการกระจายด้านใด</h2>
+      ${FACTS.map((f,k)=>`<div class="fact" data-k="${k}"><span>${esc(f.t)}</span><div class="seg">${['บุคคล','สถานที่','เวลา'].map(o=>`<button data-o="${o}">${o}</button>`).join('')}</div></div>`).join('')}
+      <div id="fb"></div><div class="row" id="ctl"><button class="go" id="chk" disabled>ตรวจคำตอบ</button></div></section>`;
+    const pick=[];
+    $('stage').querySelectorAll('.fact').forEach(f=>{ const k=+f.dataset.k; f.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      pick[k]=b.dataset.o; f.querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x===b));
+      $('chk').disabled = FACTS.some((_,j)=>!pick[j]); }); });
+    $('chk').onclick=()=>{
+      S.sorts=FACTS.map((_,j)=>pick[j]);
+      $('stage').querySelectorAll('.fact').forEach(f=>{ const k=+f.dataset.k; f.querySelectorAll('button').forEach(b=>{ b.disabled=true; b.classList.remove('sel');
+        if(b.dataset.o===FACTS[k].a) b.classList.add('right'); else if(b.dataset.o===pick[k]) b.classList.add('wrong'); }); });
+      const got=S.sorts.filter((x,j)=>x===FACTS[j].a).length; hud();
+      fb(got===FACTS.length, `จัดถูก ${got}/${FACTS.length} ข้อ`,
+        'เวลา = ช่วงเวลาที่เกิดเหตุ, สถานที่ = ตำแหน่งและสภาพของจุดเกิดเหตุ, บุคคล = ลักษณะของผู้ที่เกิดเหตุ ข้อมูลที่ไม่พบปัจจัยเสี่ยง (ไม่มีแอลกอฮอล์) ก็เป็นข้อมูลด้านบุคคลที่ช่วยตัดสาเหตุออกได้',
+        'ไปขั้นสันนิษฐาน', ()=>{ S.step=2; render(); });
+    };
+    return;
+  }
+  $('stage').innerHTML = `<section class="card" aria-live="polite"><div class="stamp">ขั้นที่ 3 · ตั้งข้อสันนิษฐาน</div><h2>${esc(HYP.q)}</h2>
+    <div class="opts">${HYP.opts.map((o,k)=>`<button class="opt" data-k="${k}">${'กขคง'[k]}. ${esc(o)}</button>`).join('')}</div>
+    <div id="fb"></div><div class="row" id="ctl"></div></section>`;
+  $('stage').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const k=+b.dataset.k; S.hyp=k;
+    $('stage').querySelectorAll('.opt').forEach(x=>{ x.disabled=true; const j=+x.dataset.k; if(j===HYP.a) x.classList.add('right'); else if(j===k) x.classList.add('wrong'); });
+    hud(); fb(k===HYP.a, k===HYP.a?'ถูกต้อง':'คำตอบที่เหมาะสมคือข้อ ข', HYP.why, 'ดูสรุป', ()=>{ S.step=3; S.end=Date.now(); render(); });
+  });
+}
+// ----- summary + send
+function result(){
+  if(MODE===1){
+    const got=S.ans.filter((x,i)=>ok1(i,x)).length;
+    return { got, total:EX1.length, topics:S.ans.slice(0,7) };
+  }
+  const useful=S.picks.filter(k=>CLUES[k].use).length;
+  const sortOk=S.sorts.map((x,j)=>x===FACTS[j].a?1:0);
+  const got=sortOk.reduce((a,b)=>a+b,0)+(S.hyp===HYP.a?1:0);
+  const mask=S.picks.reduce((m,k)=>m|(1<<k),0);
+  return { got, total:FACTS.length+1, topics:[mask].concat(sortOk,[S.hyp===HYP.a?1:0]), useful };
+}
+function done(){
+  const r=result(), pct=Math.round(r.got/r.total*100);
+  $('stage').innerHTML = `<section class="card"><div class="stamp">สรุปแบบฝึกหัดชุดที่ ${MODE}</div>
+    <h1>ถูก ${r.got}/${r.total} (${pct}%)</h1>
+    <p>${MODE===2?'ถามข้อมูลที่ใช้ได้ '+r.useful+'/'+PICK+' ข้อ · ':''}รอดูกราฟคำตอบของทั้งชั้นบนจอ แล้วร่วมอภิปรายเหตุผลกับอาจารย์</p>
+    <p id="sendmsg" class="sendmsg"></p>
+    <div class="row"><a class="ghost" href="./" style="text-decoration:none;padding:10px 16px;border-radius:10px;border:1px solid var(--line);color:var(--ink)">กลับหน้าหลัก</a></div></section>`;
+  send(r,pct);
+}
+function send(r,pct){
+  const el=$('sendmsg');
+  if(S.sent){ el.className='sendmsg ok'; el.textContent='✓ ส่งคำตอบขึ้นจอแล้ว'; return; }
+  if(!/^https?:/.test(API)) return;
+  el.className='sendmsg'; el.textContent='กำลังส่งคำตอบ…';
+  fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({
+    name:S.name, score:r.got, pct, got:r.got, total:r.total, secs:Math.floor((S.end-S.start)/1000), topics:r.topics, round:today(), mode:'ex'+MODE })})
+  .then(x=>x.json()).then(j=>{ if(!j.ok) throw 0; S.sent=true; el.className='sendmsg ok'; el.textContent='✓ ส่งคำตอบขึ้นจอแล้ว'; })
+  .catch(()=>{ el.className='sendmsg no'; el.innerHTML='ส่งไม่สำเร็จ <button class="ghost" id="resend">ส่งอีกครั้ง</button>'; $('resend').onclick=()=>send(r,pct); });
+}
+window.addEventListener('hashchange',()=>location.reload());
+render();
+</script>
+</body>
+</html>
