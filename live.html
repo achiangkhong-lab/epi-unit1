@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คะแนนสด · ภารกิจหน่วยสอบสวนโรค</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EAF0F1; --card:#FFFFFF; --ink:#132029; --muted:#5A6B74;
+  --alert:#D1452A; --teal:#0E6B70; --amber:#D99A12; --line:#C9D5D8;
+  --good:#1F8A4C; --bad:#C0392B;
+  --display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
+  --body:"IBM Plex Sans Thai","Sarabun",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:18px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:20px 32px 8px}
+h1{font-family:var(--display);font-size:2rem;margin:0;line-height:1.1}
+h1 span{color:var(--alert)}
+.sub{color:var(--muted);margin:4px 0 0}
+.ctl{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.95rem}
+.ctl input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.live{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--good)}
+.live i{width:10px;height:10px;border-radius:50%;background:var(--good);animation:p 1.6s infinite}
+.live.off{color:var(--bad)} .live.off i{background:var(--bad);animation:none}
+@keyframes p{50%{opacity:.25}}
+main{display:grid;grid-template-columns:1.05fr 1fr;gap:18px;padding:12px 32px 28px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h2{font-family:var(--display);font-size:1.15rem;margin:0 0 12px;color:var(--teal)}
+.stats{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.stat .n{font-family:var(--display);font-size:3.2rem;font-weight:700;line-height:1}
+.stat .l{color:var(--muted);margin-top:6px}
+.bar{display:grid;grid-template-columns:11.5rem 1fr 3.2rem;align-items:center;gap:10px;margin:9px 0}
+.b{height:22px;background:var(--paper);border-radius:6px;overflow:hidden}
+.b i{display:block;height:100%;background:var(--teal);transition:width .6s}
+.b i.low{background:var(--alert)}
+.bar .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:.9rem;margin:10px 0 0}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:500;font-size:.9rem}
+td.r,th.r{text-align:right}
+tr.new td{animation:flash 2.5s}
+@keyframes flash{0%{background:#FFE9A8}100%{background:transparent}}
+.rk{font-family:var(--display);font-weight:700;color:var(--amber);width:2.2rem}
+.empty{color:var(--muted);padding:24px 0;text-align:center}
+.setup{max-width:760px;margin:40px auto;padding:0 24px}
+@media (max-width:900px){main{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>ภารกิจหน่วย<span>สอบสวนโรค</span> · คะแนนสด</h1>
+    <p class="sub">วิชา 2005102 · หน่วยที่ 1 แนวคิดพื้นฐานทางวิทยาการระบาด · แบบทดสอบหลังเรียน</p>
+  </div>
+  <div class="ctl">
+    <label for="day">วันที่เรียน</label><input type="date" id="day">
+    <span class="live" id="live"><i></i><span id="lt">กำลังเชื่อมต่อ</span></span>
+  </div>
+</header>
+<main id="main">
+  <section class="stats card">
+    <div class="stat"><div class="n" id="nSent">0</div><div class="l">คู่/คนที่ส่งแล้ว</div></div>
+    <div class="stat"><div class="n" id="nAvg">–</div><div class="l">ร้อยละตอบถูกเฉลี่ย</div></div>
+    <div class="stat"><div class="n" id="nPass">–</div><div class="l">ผ่านเกณฑ์ร้อยละ 80</div></div>
+    <div class="stat"><div class="n" id="nTime">–</div><div class="l">เวลาเล่นเฉลี่ย</div></div>
+  </section>
+  <section class="card">
+    <h2>ร้อยละตอบถูกรายหัวข้อ (ทั้งชั้น)</h2>
+    <div id="topics"></div>
+    <p class="note">แถบสีแดง = ต่ำกว่าร้อยละ 80 ใช้เลือกหัวข้อสำหรับช่วงสะท้อนคิดท้ายคาบ</p>
+  </section>
+  <section class="card">
+    <h2>10 อันดับแรก</h2>
+    <table><thead><tr><th></th><th>ชื่อ/คู่</th><th class="r">คะแนน</th><th class="r">ถูก</th><th class="r">เวลา</th></tr></thead><tbody id="top"></tbody></table>
+    <p class="note">นับเฉพาะการส่งครั้งแรกของแต่ละชื่อ เรียงตามคะแนน แล้วตามเวลาที่ใช้น้อยกว่า</p>
+  </section>
+</main>
+<script>
+const API = 'https://script.google.com/macros/s/AKfycby3HDuEorq4XKsyCy6z9fTWFWPglijcsFwxoGPLIn4e-aZ-VfMD6CfF2ftqg_Fjz9vKRg/exec';
+const TOPICS = ['1. นิยาม','2. รูปแบบการระบาด','3. ปัจจัยสามทาง','4. การกระจาย','5. ธรรมชาติโรค','6. ป้องกันและควบคุม','!! เคสด่วน'];
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = () => new Date().toLocaleDateString('sv-SE', {timeZone:'Asia/Bangkok'});
+const mmss = s => Math.floor(s/60) + ':' + String(Math.round(s%60)).padStart(2,'0');
+let seen = new Set(), timer = null;
+$('day').value = today();
+$('day').onchange = () => { seen = new Set(); load(); };
+
+function render(rows){
+  // first submission per name (case/space-insensitive)
+  rows.forEach(r => { r.t = typeof r.t === 'number' ? r.t : (Date.parse(r.t) || 0); });
+  rows.sort((a,b) => a.t - b.t);
+  const first = new Map();
+  rows.forEach(r => { const k = String(r.name).trim().toLowerCase().replace(/\s+/g,' '); if(!first.has(k)) first.set(k, r); });
+  const L = [...first.values()];
+  $('nSent').textContent = L.length;
+  if(!L.length){
+    $('nAvg').textContent = $('nPass').textContent = $('nTime').textContent = '–';
+    $('topics').innerHTML = TOPICS.map(t => `<div class="bar"><span>${t}</span><div class="b"><i style="width:0"></i></div><span class="v">–</span></div>`).join('');
+    $('top').innerHTML = '<tr><td colspan="5" class="empty">ยังไม่มีผู้ส่งคะแนน</td></tr>';
+    return;
+  }
+  const avg = a => a.reduce((s,x)=>s+Number(x||0),0)/a.length;
+  $('nAvg').textContent = Math.round(avg(L.map(r=>r.pct))) + '%';
+  const pass = L.filter(r => r.pct >= 80).length;
+  $('nPass').textContent = pass + '/' + L.length;
+  $('nTime').textContent = mmss(avg(L.map(r=>r.secs)));
+  $('topics').innerHTML = TOPICS.map((t,i) => {
+    const p = Math.round(avg(L.map(r => (r.topics||[])[i])));
+    return `<div class="bar"><span>${t}</span><div class="b"><i class="${p<80?'low':''}" style="width:${p}%"></i></div><span class="v">${p}%</span></div>`;
+  }).join('');
+  const top = [...L].sort((a,b) => b.score - a.score || a.secs - b.secs).slice(0,10);
+  $('top').innerHTML = top.map((r,i) => {
+    const id = r.t + '|' + r.name, isNew = seen.size && !seen.has(id);
+    return `<tr class="${isNew?'new':''}"><td class="rk">${i+1}</td><td>${esc(r.name)}</td><td class="r">${r.score}</td><td class="r">${r.pct}%</td><td class="r">${mmss(r.secs)}</td></tr>`;
+  }).join('');
+  L.forEach(r => seen.add(r.t + '|' + r.name));
+}
+
+async function load(){
+  clearTimeout(timer);
+  try{
+    const r = await fetch(API + '?round=' + encodeURIComponent($('day').value) + '&_=' + Date.now());
+    const j = await r.json(); if(!j.ok) throw 0;
+    render(j.rows || []);
+    $('live').className = 'live'; $('lt').textContent = 'อัปเดต ' + new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }catch(e){
+    $('live').className = 'live off'; $('lt').textContent = 'เชื่อมต่อไม่ได้ กำลังลองใหม่';
+  }
+  timer = setTimeout(load, 5000);
+}
+if(!/^https?:/.test(API)){
+  $('main').outerHTML = '<div class="setup card"><h2>ยังไม่ได้ตั้งค่าที่อยู่ระบบรับคะแนน</h2><p>ใส่ URL ของ Google Apps Script แทน __API__ ในไฟล์นี้และในไฟล์เกม</p></div>';
+} else { load(); }
+</script>
+</body>
+</html>

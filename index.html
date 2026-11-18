@@ -109,6 +109,7 @@ label{font-weight:500}
   .card{animation:in .28s ease-out}
   @keyframes in{from{transform:translateY(6px)}to{transform:none}}
 }
+.sendmsg{font-weight:600;margin:.4rem 0}.sendmsg.ok{color:var(--good)}.sendmsg.no{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -226,6 +227,7 @@ const M = [
 
 // ---------- mode: #pretest = แบบทดสอบก่อนเรียน (ไม่เฉลย ไม่แสดงคะแนนระหว่างทำ)
 const PRE = location.hash === '#pretest';
+const API = 'https://script.google.com/macros/s/AKfycby3HDuEorq4XKsyCy6z9fTWFWPglijcsFwxoGPLIn4e-aZ-VfMD6CfF2ftqg_Fjz9vKRg/exec';
 if (PRE) document.documentElement.classList.add('pre');
 // ---------- state
 const total = M.reduce((s,m)=>s+m.items.reduce((t,it)=>t+units(it),0),0);
@@ -386,11 +388,26 @@ function end(){
     <div class="bars">${M.map(m=>{const b=S.byM[m.id]||{got:0,of:1}; const p=Math.round(b.got/b.of*100); return `<div class="bar"><span>${m.id<7?m.id+'. ':''}${esc(m.short)}</span><div class="b"><i class="${p<80?'low':''}" style="width:${p}%"></i></div><span>${p}%</span></div>`;}).join('')}</div>
     ${weak.length?`<div class="fb no"><strong>หัวข้อที่ควรทบทวนในเอกสารประกอบการสอน</strong><p>${weak.map(esc).join(' · ')}</p></div>`:''}
     <div class="row"><button class="go" id="copy">คัดลอกผลเพื่อส่งอาจารย์</button>${PRE?'':'<button class="ghost" id="again">เล่นใหม่</button>'}<span class="muted" id="cmsg"></span></div>
+    <p id="sendmsg" class="sendmsg"></p>
     <p class="muted" style="font-size:.85rem">ถ้าคัดลอกไม่ได้ ให้แคปหน้าจอนี้ส่งอาจารย์แทน</p>
   </section>`;
+  sendScore(got,pct);
   $('copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(summary); $('cmsg').textContent='คัดลอกแล้ว วางในช่องส่งงานของรายวิชาได้เลย'; }catch(e){ $('cmsg').textContent='คัดลอกไม่ได้ในอุปกรณ์นี้ กรุณาแคปหน้าจอ'; } };
   if($('again')) $('again').onclick=()=>{ S={ phase:'intro', name:S.name, m:0, i:0, score:0, streak:0, best:0, start:0, elapsed:0, byM:{} }; render(); };
   window.claude?.hot?.snapshot?.(()=>S);
+}
+
+function sendScore(got,pct){
+  const el=$('sendmsg'); if(!el) return;
+  if(S.sent){ el.textContent='✓ ส่งคะแนนถึงอาจารย์แล้ว'; el.className='sendmsg ok'; return; }
+  if(!/^https?:/.test(API)) return;
+  el.className='sendmsg'; el.textContent='กำลังส่งคะแนนถึงอาจารย์…';
+  const body=JSON.stringify({ name:S.name, score:S.score, pct, got, total, secs:Math.floor(S.elapsed/1000),
+    topics:M.map(m=>{const b=S.byM[m.id]; return b&&b.of?Math.round(b.got/b.of*100):0;}),
+    round:new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Bangkok'}), mode:PRE?'pre':'post' });
+  fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body})
+    .then(r=>r.json()).then(j=>{ if(!j.ok) throw 0; S.sent=true; el.className='sendmsg ok'; el.textContent='✓ ส่งคะแนนถึงอาจารย์แล้ว'; })
+    .catch(()=>{ el.className='sendmsg no'; el.innerHTML='ส่งคะแนนไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้ว <button class="ghost" id="resend">ส่งอีกครั้ง</button>'; $('resend').onclick=()=>sendScore(got,pct); });
 }
 function start(d){ if(d && d.phase){ S=d; } render(); }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
